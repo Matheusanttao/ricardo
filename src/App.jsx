@@ -99,13 +99,36 @@ function App() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [formNome, setFormNome] = useState('')
   const [formEmail, setFormEmail] = useState('')
+  const [formTelefone, setFormTelefone] = useState('')
   const [formMensagem, setFormMensagem] = useState('')
+  const [formStatus, setFormStatus] = useState(null) // 'sending' | 'success' | 'error'
 
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault()
-    const subject = `Contato do site - ${formNome.trim() || 'Sem nome'}`
-    const body = `${formMensagem.trim()}\n\n---\nEmail: ${formEmail.trim()}\nNome: ${formNome.trim()}`
-    window.location.href = `mailto:${CONTACT.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    setFormStatus('sending')
+    try {
+      const res = await fetch('https://formspree.io/f/xzdjpkwa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome: formNome.trim(),
+          email: formEmail.trim(),
+          telefone: formTelefone.trim(),
+          mensagem: formMensagem.trim(),
+        }),
+      })
+      if (res.ok) {
+        setFormStatus('success')
+        setFormNome('')
+        setFormEmail('')
+        setFormTelefone('')
+        setFormMensagem('')
+      } else {
+        setFormStatus('error')
+      }
+    } catch {
+      setFormStatus('error')
+    }
   }
 
   useEffect(() => {
@@ -370,7 +393,7 @@ function App() {
 
             <div className="contactWrap">
               <div className="contactInfo">
-                <div className="contactCard">
+                <div className="contactCard contactCardEmail">
                   <span className="contactCardIcon contactCardIconEmail">
                     <MailIcon />
                   </span>
@@ -417,9 +440,10 @@ function App() {
                     <input
                       type="text"
                       className="contactInput"
-                      placeholder="Seu nome"
+                      placeholder="Seu nome completo"
                       value={formNome}
                       onChange={(e) => setFormNome(e.target.value)}
+                      required
                     />
                   </label>
                   <label className="contactLabel">
@@ -430,20 +454,38 @@ function App() {
                       placeholder="seu@email.com"
                       value={formEmail}
                       onChange={(e) => setFormEmail(e.target.value)}
+                      required
+                    />
+                  </label>
+                  <label className="contactLabel">
+                    Telefone / WhatsApp
+                    <input
+                      type="tel"
+                      className="contactInput"
+                      placeholder="(31) 99999-9999"
+                      value={formTelefone}
+                      onChange={(e) => setFormTelefone(e.target.value)}
                     />
                   </label>
                   <label className="contactLabel">
                     Mensagem <span className="contactRequired">*</span>
                     <textarea
                       className="contactInput contactTextarea"
-                      placeholder="Conte seu objetivo, rotina e como posso te ajudar..."
+                      placeholder="Conte um pouco sobre você, rotina e como posso te ajudar..."
                       rows={4}
                       value={formMensagem}
                       onChange={(e) => setFormMensagem(e.target.value)}
+                      required
                     />
                   </label>
-                  <button type="submit" className="contactSubmit">
-                    Enviar mensagem
+                  {formStatus === 'success' && (
+                    <p className="contactFormSuccess">Mensagem enviada! Em breve entro em contato.</p>
+                  )}
+                  {formStatus === 'error' && (
+                    <p className="contactFormError">Não foi possível enviar. Tente de novo ou me chame no WhatsApp.</p>
+                  )}
+                  <button type="submit" className="contactSubmit" disabled={formStatus === 'sending'}>
+                    {formStatus === 'sending' ? 'Enviando...' : 'Enviar mensagem'}
                     <SendIcon />
                   </button>
                 </form>
@@ -502,6 +544,9 @@ function App() {
                 </a>
                 <a href={CONTACT.instagram} target="_blank" rel="noreferrer" className="footerSocialBtn" aria-label="Instagram">
                   <InstagramIcon />
+                </a>
+                <a href={`mailto:${CONTACT.email}`} className="footerSocialBtn" aria-label="E-mail">
+                  <MailIcon />
                 </a>
               </div>
             </div>
